@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Score & Grade Monitoring Portal - Final Term</title>
+  <style>
+    :root { --primary: #0f172a; --accent: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #334155; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 95vh; }
+    .portal-card { background: var(--card); border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); width: 100%; max-width: 580px; padding: 30px; box-sizing: border-box; }
+    h2, h3 { text-align: center; color: var(--primary); margin-top: 0; }
+    label { font-weight: 600; font-size: 0.88rem; display: block; margin-bottom: 6px; }
+    input[type="text"], input[type="password"], select { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; margin-bottom: 12px; }
+    button { width: 100%; padding: 12px; background-color: var(--accent); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    button:hover { background-color: #1d4ed8; }
+    .btn-secondary { background-color: #64748b; }
+    .btn-secondary:hover { background-color: #475569; }
+    .hidden { display: none !important; }
+    .grid-container { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-top: 15px; }
+    .data-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.92rem; }
+    .data-row:last-child { border-bottom: none; }
+    .mg-box { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 1.05rem; display: flex; justify-content: space-between; margin-top: 15px; }
+    .rank-box { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 1.05rem; display: flex; justify-content: space-between; margin-top: 10px; }
+    .status-box { background: #fefce8; border: 1px solid #fef08a; color: #854d0e; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 1.05rem; display: flex; justify-content: space-between; margin-top: 10px; }
+    .status-exempted { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .status-not-exempted { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .error-msg { color: #dc2626; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+    .loading-text { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 15px; }
+    .tab-container { display: flex; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; }
+    .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: 600; color: #64748b; }
+    .tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); margin-bottom: -2px; }
+    iframe { border: none; width: 100%; height: 420px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="portal-card">
+  <!-- LOGIN & RESET TABS -->
+  <div id="loginSection">
+    <div class="tab-container">
+      <div id="tabLogin" class="tab active" onclick="switchTab('login')">Log In</div>
+      <div id="tabReset" class="tab" onclick="switchTab('reset')">Request Password Change</div>
+    </div>
+
+    <!-- VIEW GRADES TAB -->
+    <div id="viewLoginTab">
+      <h2>Student Portal Log-In</h2>
+      <div id="loadingStatus" class="loading-text">Fetching class records...</div>
+      
+      <label for="subjectSelect">Select Subject / Class Section:</label>
+      <select id="subjectSelect"><option value="">-- Select Section --</option></select>
+
+      <label for="studentIdInput">Student No. / ID:</label>
+      <input type="text" id="studentIdInput" placeholder="Enter Student ID" />
+
+      <label for="studentPasswordInput">Password:</label>
+      <input type="password" id="studentPasswordInput" placeholder="Enter Password" />
+
+      <button onclick="loginStudent()">Log In</button>
+      <div id="loginError" class="error-msg"></div>
+    </div>
+
+    <!-- CHANGE PASSWORD TAB (EMBEDDED GOOGLE FORM) -->
+    <div id="viewResetTab" class="hidden">
+      <h2>Submit New Password</h2>
+      <iframe src="https://docs.google.com/forms/d/e/.../viewform?embedded=true">Loading form...</iframe>
+    </div>
+  </div>
+
+  <!-- STUDENT DASHBOARD SECTION -->
+  <div id="dashboardSection" class="hidden">
+    <h3>Academic Score Report (Final Term)</h3>
+    <p style="text-align: center; color: #64748b; font-size: 0.85rem; margin-top: -8px;" id="classLabel"></p>
+
+    <div class="grid-container">
+      <div class="data-row"><span><strong>Student Name:</strong></span><span id="resName">-</span></div>
+      <div class="data-row"><span><strong>Student No:</strong></span><span id="resId">-</span></div>
+      <div class="data-row"><span><strong>Class Rank:</strong></span><span id="resRankRow">-</span></div>
+      <div class="data-row"><span><strong>Total Attendance:</strong></span><span id="resAttendance">-</span></div>
+      <div class="data-row"><span><strong>Participation Score:</strong></span><span id="resPart">-</span></div>
+      <div class="data-row"><span><strong>Lecture Score:</strong></span><span id="resLctr">-</span></div>
+      <div class="data-row"><span><strong>Seatworks (SW1 - SW4):</strong></span><span id="resSeatworks">-</span></div>
+      <div class="data-row"><span><strong>Recitation (R1):</strong></span><span id="resRecitation">-</span></div>
+      <div class="data-row"><span><strong>Quizzes (Q1, Q2, Q3):</strong></span><span id="resQuizzes">-</span></div>
+      <div class="data-row"><span><strong>Quiz Bonus Points:</strong></span><span id="resQuizBonus">-</span></div>
+      <div class="data-row"><span><strong>Final Exam Score:</strong></span><span id="resFinalExam">-</span></div>
+    </div>
+
+    <div class="mg-box">
+      <span>Total Accumulated Points:</span>
+      <span id="resTotalPoints">-</span>
+    </div>
+
+    <div class="rank-box">
+      <span>Current Class Rank:</span>
+      <span id="resRankBox">-</span>
+    </div>
+
+    <div id="statusBox" class="status-box">
+      <span>Final Exam Status:</span>
+      <span id="resExemption">-</span>
+    </div>
+
+    <button class="btn-secondary" style="margin-top: 20px;" onclick="logout()">Log Out</button>
+  </div>
+</div>
+
+<script>
+  let CLASS_DATA = {};
+
+  // Fetch the data JSON from the online repository automatically without caching issues
+  window.onload = function() {
+    fetch('data.json?cache_bypass=' + new Date().getTime())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("HTTP error " + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        CLASS_DATA = data;
+        populateSubjectSelect();
+        document.getElementById('loadingStatus').innerText = "Class record data synchronized.";
+      })
+      .catch(err => {
+        document.getElementById('loadingStatus').innerText = "";
+        document.getElementById('loginError').innerText = "Error loading data.json repository file.";
+        console.error(err);
+      });
+  };
+
+  function populateSubjectSelect() {
+    const subjectSelect = document.getElementById('subjectSelect');
+    subjectSelect.innerHTML = '<option value="">-- Select Section --</option>';
+    
+    Object.keys(CLASS_DATA).forEach(subject => {
+      const opt = document.createElement('option');
+      opt.value = subject;
+      opt.innerText = subject;
+      subjectSelect.appendChild(opt);
+    });
+  }
+
+  function switchTab(tab) {
+    if (tab === 'login') {
+      document.getElementById('viewLoginTab').classList.remove('hidden');
+      document.getElementById('viewResetTab').classList.add('hidden');
+      document.getElementById('tabLogin').classList.add('active');
+      document.getElementById('tabReset').classList.remove('active');
+    } else {
+      document.getElementById('viewLoginTab').classList.add('hidden');
+      document.getElementById('viewResetTab').classList.remove('hidden');
+      document.getElementById('tabLogin').classList.remove('active');
+      document.getElementById('tabReset').classList.add('active');
+    }
+  }
+
+  function loginStudent() {
+    const selectedSubject = document.getElementById('subjectSelect').value;
+    const inputId = document.getElementById('studentIdInput').value.trim();
+    const inputPass = document.getElementById('studentPasswordInput').value.trim();
+    const errorDiv = document.getElementById('loginError');
+    errorDiv.innerText = '';
+
+    if (!selectedSubject || !CLASS_DATA[selectedSubject]) {
+      errorDiv.innerText = 'Please select a valid subject / class section.';
+      return;
+    }
+
+    if (!inputId || !inputPass) {
+      errorDiv.innerText = 'Please enter your Student ID and Password.';
+      return;
+    }
+
+    const studentRecords = CLASS_DATA[selectedSubject];
+    const student = studentRecords.find(s => (String(s.id).trim() === inputId || String(s.id).includes(inputId)) && String(s.password).trim() === inputPass);
+
+    if (student) {
+      document.getElementById('resName').innerText = student.name || '-';
+      document.getElementById('resId').innerText = student.id || '-';
+      document.getElementById('resRankRow').innerText = student.rank || 'N/A';
+      document.getElementById('resRankBox').innerText = 'Rank ' + (student.rank || 'N/A');
+      document.getElementById('resAttendance').innerText = (student.attendance ?? 0) + ' Days Present';
+      document.getElementById('resPart').innerText = (student.participation ?? 0) + ' pts';
+      document.getElementById('resLctr').innerText = (student.lecture ?? 0) + ' pts';
+      document.getElementById('resSeatworks').innerText = student.seatworks || '0 pts';
+      document.getElementById('resRecitation').innerText = (student.recitation ?? 0) + ' pts';
+      document.getElementById('resQuizzes').innerText = student.quizzes || '0 pts';
+      document.getElementById('resQuizBonus').innerText = student.quizBonus || '0 pts';
+      document.getElementById('resFinalExam').innerText = (student.finalExam ?? 0) + ' pts';
+      document.getElementById('resTotalPoints').innerText = student.totalPoints || 'N/A';
+      
+      const exElem = document.getElementById('resExemption');
+      const boxElem = document.getElementById('statusBox');
+      const statusText = student.exemption || 'N/A';
+      exElem.innerText = statusText;
+
+      boxElem.classList.remove('status-exempted', 'status-not-exempted');
+      if (statusText.toUpperCase().includes('EXEMPTED') && !statusText.toUpperCase().includes('NOT')) {
+        boxElem.classList.add('status-exempted');
+      } else if (statusText.toUpperCase().includes('NOT EXEMPTED')) {
+        boxElem.classList.add('status-not-exempted');
+      }
+
+      document.getElementById('classLabel').innerText = "Subject / Section: " + selectedSubject;
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('dashboardSection').classList.remove('hidden');
+    } else {
+      errorDiv.innerText = 'Invalid Student ID or Password for the selected subject.';
+    }
+  }
+
+  function logout() {
+    document.getElementById('studentIdInput').value = '';
+    document.getElementById('studentPasswordInput').value = '';
+    document.getElementById('dashboardSection').classList.add('hidden');
+    document.getElementById('loginSection').classList.remove('hidden');
+  }
+</script>
+</body>
+</html>
